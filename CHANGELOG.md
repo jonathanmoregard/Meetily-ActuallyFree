@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Labs meeting automation is now two switches: "Start recording without asking"
+  and "Stop recording when the call ends". The stop also applies to recordings
+  started from the detection prompt. A saved single switch turns on both.
 - macOS stability candidate (0.2.22, not yet published): fix idle tap startup,
   keep microphone recording during a system-tap stall, refresh Audio Capture
   permission state, and show unknown backend start errors (#46/#47/#53).

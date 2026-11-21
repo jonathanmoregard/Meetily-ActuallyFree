@@ -300,28 +300,35 @@ export default function RootLayout({
   }, [startupResolved, startupError, pendingCrashReport]);
 
   // Meeting Detection: prompt to start recording when a meeting app is detected.
-  // With Labs meeting automation on, a call that is using the microphone or
-  // camera starts a recording instead, and that recording stops when the call
-  // ends. The compact bar's window never starts or stops recordings.
+  // Labs, two separate settings: "start without asking" records a call that is
+  // using the microphone or camera instead of prompting; "stop when the call
+  // ends" stops and saves a recording started for a detected call, whether the
+  // prompt or automation started it. Recordings started by hand are never
+  // stopped. The compact bar's window never starts or stops recordings.
   useEffect(() => {
     if (!startupResolved || startupError || pendingCrashReport || isMinibar || !recordingNoticeAcknowledged) return
+    // The call the latest prompt was for; its Start recording button carries no payload.
+    let promptedCall: { app: string; process: string } | null = null;
+    const startPromptedRecording = (call: { app: string; process: string } | null) => {
+      if (showOnboarding) {
+        toast.error('Please complete setup first', {
+          description: 'Finish onboarding before you can start recording.',
+        });
+        return;
+      }
+      // Ties the recording to the call, so "stop when the call ends" can act on it.
+      if (call) markAutomatedStart(call);
+      startRecordingAnywhere.current();
+    };
     const unlisten = listen<{ app: string; process: string; notify: boolean; active_media: boolean }>(
       'meeting-detected',
       (event) => {
         const { app, notify, active_media, process } = event.payload;
         console.log('[Layout] meeting-detected:', event.payload);
 
-        const startRecording = () => {
-          if (showOnboarding) {
-            toast.error('Please complete setup first', {
-              description: 'Finish onboarding before you can start recording.',
-            });
-            return;
-          }
-          startRecordingAnywhere.current();
-        };
+        const startRecording = () => startPromptedRecording({ app, process });
 
-        if (loadLabsPreferences().meetingAutomation && active_media && !showOnboarding) {
+        if (loadLabsPreferences().meetingAutoStart && active_media && !showOnboarding) {
           void invoke<{ is_recording?: boolean }>('get_recording_state').then((state) => {
             if (state.is_recording) return;
             markAutomatedStart({ app, process });
@@ -331,6 +338,7 @@ export default function RootLayout({
         }
 
         // OS toast with a Start recording button (Windows native path).
+        promptedCall = { app, process };
         if (notify) {
           invoke('show_simple_notification', {
             title: `${app} meeting detected`,
@@ -351,20 +359,12 @@ export default function RootLayout({
     );
 
     // OS notification button → same start path as sidebar / in-app toast.
-    const unlistenStart = listen('start-recording-from-notification', () => {
-      if (showOnboarding) {
-        toast.error('Please complete setup first', {
-          description: 'Finish onboarding before you can start recording.',
-        });
-        return;
-      }
-      startRecordingAnywhere.current();
-    });
+    const unlistenStart = listen('start-recording-from-notification', () => startPromptedRecording(promptedCall));
 
-    // Only a recording that automation started for this same call is stopped.
+    // Only a recording started for this same detected call is stopped.
     const unlistenEnd = listen<{ app: string; process: string }>('meeting-ended', (event) => {
       const call = automatedRecording();
-      if (!call || call.process !== event.payload.process || !loadLabsPreferences().meetingAutomation) return;
+      if (!call || call.process !== event.payload.process || !loadLabsPreferences().meetingAutoStop) return;
       void invoke<{ is_recording?: boolean }>('get_recording_state').then((state) => {
         if (!state.is_recording) {
           endAutomatedRecording();

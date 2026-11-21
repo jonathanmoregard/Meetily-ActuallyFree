@@ -8,7 +8,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { invoke } from '@tauri-apps/api/core';
-import { AudioWaveform, Eraser, Fingerprint, Gauge, VolumeX, Workflow, X, type LucideIcon } from 'lucide-react';
+import { AudioWaveform, CircleStop, Eraser, Fingerprint, Gauge, VolumeX, Workflow, X, type LucideIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { Switch } from '@/components/ui/switch';
 import { Avatar } from '@/components/ui/avatar';
@@ -34,12 +34,20 @@ const GROUPS: Array<{ title: string; features: Feature[] }> = [
     title: 'Meetings',
     features: [
       {
-        key: 'meetingAutomation',
+        key: 'meetingAutoStart',
         icon: Workflow,
-        title: 'Meeting automation',
+        title: 'Start recording without asking',
         description:
-          'Start recording when meeting detection sees a call using your microphone or camera, and stop and save it when the call ends. Recordings you start yourself are never stopped.',
-        where: 'Turns on meeting detection. A notice says when a call starts or ends a recording.',
+          'When meeting detection sees a call using your microphone or camera, start recording instead of showing the "Start recording / Skip" prompt.',
+        where: 'Turns on meeting detection. A notice says when a call starts a recording.',
+      },
+      {
+        key: 'meetingAutoStop',
+        icon: CircleStop,
+        title: 'Stop recording when the call ends',
+        description:
+          'A recording started for a detected call, from the prompt or automatically, stops and saves when the call ends. Recordings you start yourself are never stopped.',
+        where: 'Turns on meeting detection. A notice says when a call ending stops a recording.',
       },
     ],
   },
@@ -216,8 +224,8 @@ export function LabsSettings() {
     setBusy(feature.key);
     try {
       await setLabsFeature(feature.key, value);
-      if (feature.key === 'meetingAutomation' && value) {
-        toast.success('Meeting automation is on', { description: 'Meeting detection is on too, so calls can start recordings.' });
+      if ((feature.key === 'meetingAutoStart' || feature.key === 'meetingAutoStop') && value) {
+        toast.success(`${feature.title} is on`, { description: 'Meeting detection is on too, so it can see calls.' });
       }
     } catch (error) {
       toast.error(`Could not ${value ? 'turn on' : 'turn off'} ${feature.title.toLowerCase()}`, {

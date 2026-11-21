@@ -1,8 +1,8 @@
 /**
- * Labs meeting automation. When meeting detection sees a call using the
- * microphone or camera, a recording starts; when that call ends, the
- * recording it started stops and saves. Recordings the user started are
- * never stopped by it.
+ * Ties a recording to the detected call it was started for: by the consent
+ * prompt, or by Labs "start without asking". With Labs "stop when the call
+ * ends", that recording stops and saves when the call ends. Recordings the
+ * user started by hand are never tied to a call, so never stopped.
  *
  * The recorder owns the start and stop sequences, so the hand-off between the
  * detection events (in the root layout) and the recorder goes through

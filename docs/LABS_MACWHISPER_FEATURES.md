@@ -13,10 +13,13 @@ recording-relative transcript turn times, and process-based meeting prompts.
 All switches are in Settings > Labs, and each feature also shows where it is
 used:
 
-- Meeting automation: a switch in Settings > Meeting detection as well. A
-  notice says when a call starts a recording (with an option to keep it going
-  after the call) and when the call's end stops it. The stop runs the
-  recorder's normal stop and save from any page, without reloading.
+- Meeting automation, as two switches that are also in Settings > Meeting
+  detection: "Start recording without asking" skips the consent prompt, and
+  "Stop recording when the call ends" stops a recording started for a detected
+  call, whether the prompt or automation started it. A notice says when a call
+  ending will stop a recording (with an option to keep it going) and when it
+  does. The stop runs the recorder's normal stop and save from any page,
+  without reloading. A saved single "Meeting automation" switch turns on both.
 - Audio and transcript seeking: the meeting player shows the waveform instead
   of a plain track and adds 0.5× and 0.75×. Seeking from a line's timestamp
   and following playback work without Labs.
@@ -43,8 +46,11 @@ generation prevents duplicate loops after settings changes. The detector emits
 missing signals. Labs auto-start acts only on an active Windows media lease;
 process-only detection still prompts. The frontend stores ownership only after
 a successful start and runs the usual stop/save workflow only for an owned
-recording. Enabling Labs meeting automation also enables the existing Detection
+recording. Enabling either Labs switch also enables the existing Detection
 monitor; switching Labs off leaves ordinary detection prompts available.
+A recording started from the detection prompt (in-app toast or OS
+notification) is owned by its call too, so the stop-at-call-end switch applies
+to it without the auto-start switch.
 
 The plan's proposal to bind the detected PID directly to per-app capture is not
 used. Browser PIDs can contain unrelated tabs, and process capture settings are

@@ -10,6 +10,7 @@ import { readPendingGroup } from '@/lib/groups';
 import { automaticTitle, beginLiveSession } from '@/lib/live-session';
 import { AUTO_START_KEY, START_RECORDING_EVENT } from '@/lib/recording-launch';
 import { beginAutomatedRecording, endAutomatedRecording, takeAutomatedStart } from '@/lib/meeting-automation';
+import { loadLabsPreferences } from '@/lib/labs';
 import Analytics from '@/lib/analytics';
 import { showRecordingNotification } from '@/lib/recordingNotification';
 import { toast } from 'sonner';
@@ -184,11 +185,13 @@ export function useRecordingStart(
       Analytics.trackButtonClick('start_recording', source);
       if (call) {
         beginAutomatedRecording(call);
-        toast(`Recording your ${call.app} call`, {
-          description: 'Meeting automation started it, and stops and saves it when the call ends.',
-          duration: 10000,
-          action: { label: "Don't stop it", onClick: () => endAutomatedRecording() },
-        });
+        if (loadLabsPreferences().meetingAutoStop) {
+          toast(`Recording your ${call.app} call`, {
+            description: 'It stops and saves when the call ends.',
+            duration: 10000,
+            action: { label: "Don't stop it", onClick: () => endAutomatedRecording() },
+          });
+        }
       }
       await showRecordingNotification();
       return true;

@@ -1,5 +1,8 @@
 export interface LabsPreferences {
-  meetingAutomation: boolean;
+  /** A detected call that uses the mic or camera starts recording without the consent prompt. */
+  meetingAutoStart: boolean;
+  /** A recording started for a detected call (from the prompt or automatically) stops and saves when the call ends. */
+  meetingAutoStop: boolean;
   transcriptScrubbing: boolean;
   voiceProfiles: boolean;
   whisperSilenceGuard: boolean;
@@ -8,7 +11,8 @@ export interface LabsPreferences {
 }
 
 export const defaultLabsPreferences: LabsPreferences = {
-  meetingAutomation: false,
+  meetingAutoStart: false,
+  meetingAutoStop: false,
   transcriptScrubbing: false,
   voiceProfiles: false,
   whisperSilenceGuard: false,
@@ -23,6 +27,12 @@ export function loadLabsPreferences(): LabsPreferences {
   if (typeof window === 'undefined') return defaultLabsPreferences;
   try {
     const saved = JSON.parse(localStorage.getItem(key) || '{}');
+    // "Meeting automation" used to be one switch for both; it seeds each half
+    // until that half is saved on its own.
+    if (typeof saved.meetingAutomation === 'boolean') {
+      saved.meetingAutoStart ??= saved.meetingAutomation;
+      saved.meetingAutoStop ??= saved.meetingAutomation;
+    }
     return Object.fromEntries(
       Object.entries(defaultLabsPreferences).map(([name, fallback]) =>
         [name, typeof saved[name] === 'boolean' ? saved[name] : fallback],

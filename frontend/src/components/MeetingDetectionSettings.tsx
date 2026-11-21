@@ -4,10 +4,30 @@ import { useEffect, useState } from "react"
 import { Switch } from "./ui/switch"
 import { Badge } from "./ui/badge"
 import { invoke } from "@tauri-apps/api/core"
-import { Radar, Workflow } from "lucide-react"
+import { CircleStop, Radar, Workflow } from "lucide-react"
 import { toast } from "sonner"
 import { useLabs } from "@/hooks/useLabs"
 import { setLabsFeature } from "@/lib/labs-features"
+
+type AutomationKey = "meetingAutoStart" | "meetingAutoStop"
+
+// Two independent Labs switches: skipping the consent prompt, and stopping at call end.
+const AUTOMATION: Array<{ key: AutomationKey; title: string; description: string; Icon: typeof Workflow }> = [
+  {
+    key: "meetingAutoStart",
+    title: "Start recording without asking",
+    description:
+      "Instead of prompting, record a detected call once it uses your microphone or camera.",
+    Icon: Workflow,
+  },
+  {
+    key: "meetingAutoStop",
+    title: "Stop recording when the call ends",
+    description:
+      "A recording started for a detected call, from the prompt or automatically, stops and saves when the call ends. Recordings you start yourself are never stopped.",
+    Icon: CircleStop,
+  },
+]
 
 interface MeetingDetectionSettings {
   enabled: boolean;
@@ -42,17 +62,19 @@ export function MeetingDetectionSettings() {
     try {
       await invoke('set_meeting_detection_settings', { settings: next });
       // Automation acts on detection's events; without detection it is off too.
-      if (!next.enabled && labs.meetingAutomation) await setLabsFeature('meetingAutomation', false);
+      if (!next.enabled) {
+        for (const { key } of AUTOMATION) if (labs[key]) await setLabsFeature(key, false);
+      }
     } catch (e) {
       console.error('Failed to save meeting detection settings:', e);
     }
   };
 
-  // Labs: turning automation on also turns detection on.
-  const setAutomation = async (value: boolean) => {
+  // Labs: turning either automation on also turns detection on.
+  const setAutomation = async (key: AutomationKey, value: boolean) => {
     setAutomationBusy(true);
     try {
-      await setLabsFeature('meetingAutomation', value);
+      await setLabsFeature(key, value);
       if (value && md && !md.enabled) setMd({ ...md, enabled: true });
     } catch (error) {
       toast.error('Could not change meeting automation', { description: error instanceof Error ? error.message : String(error) });
@@ -133,28 +155,27 @@ export function MeetingDetectionSettings() {
         )}
       </div>
 
-      <div className="flex items-start gap-4 rounded-2xl border border-af-border bg-af-panel-2/40 p-5">
-        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-af-accent/[0.12] text-af-accent">
-          <Workflow className="h-[18px] w-[18px]" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <h3 className="flex items-center gap-2 text-[15px] font-semibold text-af-text">
-            Start and stop recordings automatically
-            <Badge variant="accent" size="xs">Labs</Badge>
-          </h3>
-          <p className="mt-0.5 text-[13px] leading-relaxed text-af-text-3">
-            Instead of prompting, record a detected call once it uses your microphone or camera, and stop and save when it
-            ends. Recordings you start yourself are never stopped.
-          </p>
+      {AUTOMATION.map(({ key, title, description, Icon }) => (
+        <div key={key} className="flex items-start gap-4 rounded-2xl border border-af-border bg-af-panel-2/40 p-5">
+          <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-af-accent/[0.12] text-af-accent">
+            <Icon className="h-[18px] w-[18px]" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <h3 className="flex items-center gap-2 text-[15px] font-semibold text-af-text">
+              {title}
+              <Badge variant="accent" size="xs">Labs</Badge>
+            </h3>
+            <p className="mt-0.5 text-[13px] leading-relaxed text-af-text-3">{description}</p>
+          </div>
+          <Switch
+            checked={labs[key]}
+            disabled={automationBusy}
+            onCheckedChange={(value) => void setAutomation(key, value)}
+            aria-label={title}
+            className="mt-1 shrink-0"
+          />
         </div>
-        <Switch
-          checked={labs.meetingAutomation}
-          disabled={automationBusy}
-          onCheckedChange={(value) => void setAutomation(value)}
-          aria-label="Start and stop recordings automatically"
-          className="mt-1 shrink-0"
-        />
-      </div>
+      ))}
     </div>
   );
 }

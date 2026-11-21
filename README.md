@@ -133,8 +133,11 @@ providers, and optional Labs features—all without a paid app tier.
 
 Settings → **Labs** contains opt-in, experimental capabilities:
 
-- **Meeting automation:** on supported Windows meeting-detection signals,
-  automatically start and stop recordings owned by the automation.
+- **Start recording without asking:** on supported Windows meeting-detection
+  signals, start recording a detected call instead of prompting.
+- **Stop recording when the call ends:** stop and save a recording started for
+  a detected call, from the prompt or automatically. Recordings you start
+  yourself are never stopped.
 - **Waveform scrubbing:** navigate audio visually, with additional slower
   playback speeds.
 - **Clean transcript:** switch between Clean and Verbatim views and use cleaned
